@@ -314,12 +314,12 @@ is_allnan_col.sum() / is_allnan_col.shape[0]
 
 # are there any entries on this day where smart 22 is not null?
 # this is checked because smart 22 is almost always null, so if we find something non-null, it's worth keeping
-badday_df[["smart_22_raw", "smart_22_normalized"]].isna().all().compute()
+#badday_df[["smart_22_raw", "smart_22_normalized"]].isna().all().compute()
 
 # see what non nan values existed
-badday_df[~badday_df["smart_22_raw"].isna()][
-    ["date", "serial_number", "model", "capacity_bytes", "failure", "smart_22_raw"]
-].compute()
+#badday_df[~badday_df["smart_22_raw"].isna()][
+#    ["date", "serial_number", "model", "capacity_bytes", "failure", "smart_22_raw"]
+#].compute()
 
 # fill in dummy values
 cols_to_fill = list(nan193_df.columns)
@@ -328,16 +328,16 @@ cols_to_fill = list(nan193_df.columns)
 cols_to_fill = [col for col in cols_to_fill if col.startswith("smart")]
 
 # dont want to fill smart 22
-cols_to_fill.remove("smart_22_raw")
-cols_to_fill.remove("smart_22_normalized")
+#cols_to_fill.remove("smart_22_raw")
+#cols_to_fill.remove("smart_22_normalized")
 
 # must do it in for loop, dask does not like indexing with list
 # plus, its not straightforward to mask isna of specific columns
 for col in cols_to_fill:
     if col.startswith("smart"):
         #         # TODO: replace value_counts+max with median, when it is implemented in dask
-        #         clean_df[col] = clean_df[col].fillna(value=clean_df[col].value_counts().idxmax())
-        clean_df[col] = clean_df[col].ffill()
+        clean_df[col] = clean_df[col].fillna(value=clean_df[col].value_counts().idxmax())
+#        clean_df[col] = clean_df[col].ffill()
 
 # how do things look after this
 utils.get_nan_count_percent(clean_df, num_total_datapts).compute()
@@ -349,87 +349,6 @@ del ser_nanpercent
 del badday_df
 del is_allnan_col
 del cols_to_fill
-gc.collect()
-
-# serial numbers of all drives where 22 is reported as non nan at least once
-nonnan22_serials = (
-    clean_df[~clean_df["smart_22_raw"].isna()]["serial_number"].unique().compute()
-)  # len = 2334
-
-# of these serial numbers, which ones report at least one nan as well
-isanynan22_serials = clean_df[clean_df["serial_number"].isin(nonnan22_serials)][
-    ["date", "serial_number", "smart_22_raw"]
-]
-isanynan22_serials = (
-    isanynan22_serials.groupby("serial_number")
-    .apply(lambda g: g["smart_22_raw"].isna().any())
-    .compute()
-)
-
-# these are the drives that report at least one nan, and are known to be helium drives
-# because they have reported non-nan value for smart 22 at least once
-helium_nans = isanynan22_serials[isanynan22_serials]
-helium_nans
-
-# get detailed data for these drives
-cols = ["date", "serial_number", "failure", "smart_22_raw", "smart_22_normalized"]
-tmp = clean_df[clean_df["serial_number"].isin(helium_nans.index)][cols].compute()
-
-# on what dates do nan values occur for smart 22 for helium drives
-tmp[tmp["smart_22_raw"].isna()]["date"].unique()
-print(tmp[tmp["smart_22_raw"].isna()]["date"].unique())
-
-
-tmp[["serial_number", "smart_22_raw"]].groupby("serial_number").agg(["mean", "std"])
-
-tmp[["serial_number", "smart_22_normalized"]].groupby("serial_number").agg(
-    ["mean", "std"]
-)
-
-
-clean_df["smart_22_normalized"].value_counts().compute()
-
-clean_df["smart_22_raw"].value_counts().compute()
-
-clean_df[clean_df["serial_number"].isin(helium_nans.index)][
-    "smart_22_raw"
-].mean().compute()
-
-(clean_df["date"] == "2018-11-17").sum().compute()
-
-# rows which were recorded on the doomsday, and belong to drives that report non null smart 22
-is_helium = clean_df["serial_number"].isin(helium_nans.index)
-is_doomsday = clean_df["date"] == "2018-11-17"
-
-# replace with mean values within that group
-cols_to_fill = ["smart_22_raw", "smart_22_normalized"]
-for col in cols_to_fill:
-    clean_df[col] = clean_df[col].mask(
-        is_helium & is_doomsday, clean_df[is_helium][col].mean()
-    )
-
-# make sure that as of this cell, drives report either all nans or no nans for smart 22
-tmp = clean_df[clean_df["serial_number"].isin(nonnan22_serials)][
-    ["date", "serial_number", "smart_22_raw"]
-]
-tmp = tmp.groupby("serial_number").apply(lambda g: g["smart_22_raw"].isna().any())
-tmp.any().compute()
-
-# fill the rest of the nan values with dummy values
-cols_to_fill = ["smart_22_raw", "smart_22_normalized"]
-for col in cols_to_fill:
-    clean_df[col] = clean_df[col].fillna(DUMMY_VALUE)
-
-# how do things look after this
-utils.get_nan_count_percent(clean_df, num_total_datapts).compute().sort_values(
-    by="percent", ascending=False
-)
-
-# clean up garbage
-del tmp
-del nonnan22_serials
-del isanynan22_serials
-del helium_nans
 gc.collect()
 
 # get ideal number of partitions

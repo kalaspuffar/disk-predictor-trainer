@@ -117,24 +117,23 @@ custom_dtypes = {
 }
 
 # read all the cleaned seagate data into one dataframe
-MANUFACTURER = "hgst"
-#MANUFACTURER = "seagate"
+#MANUFACTURER = "hgst"
+MANUFACTURER = "seagate"
 #MANUFACTURER = "hitachi"
 #MANUFACTURER = "toshiba"
 #MANUFACTURER = "wdc"
 DATA_DIR = "/home/woden/predict"
-#MANUFACTURER_TYPES = "seagate"
-MANUFACTURER_TYPES = "hgst"
+MANUFACTURER_TYPES = "seagate"
+#MANUFACTURER_TYPES = "hgst"
 
-#df4 = dd.read_csv(
-#    os.path.join(DATA_DIR, "data_Q4_2018_{}_clean".format(MANUFACTURER), "*.csv"),
-#    dtype=custom_dtypes[MANUFACTURER],
-#)
-df3 = dd.read_csv(
-    os.path.join(DATA_DIR, "data_Q3_2024_{}_clean".format(MANUFACTURER), "*.csv"),
-    dtype=custom_dtypes[MANUFACTURER_TYPES],
+pattern = os.path.join(DATA_DIR, f"data_Q*_????_{MANUFACTURER}_clean", "*.csv")
+
+# Read all matching CSVs
+df = dd.read_csv(
+    pattern,
+    dtype=custom_dtypes[MANUFACTURER],
 )
-df = dd.concat([df3], interleave_partitions=True)
+
 df = utils.optimal_repartition_df(df)
 
 # define thresholds as timedelta
