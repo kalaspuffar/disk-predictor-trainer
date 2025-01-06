@@ -1,6 +1,7 @@
 import os
 import gc
 import datetime
+import sys
 
 import numpy as np
 import pandas as pd
@@ -118,20 +119,24 @@ custom_dtypes = {
 
 # read all the cleaned seagate data into one dataframe
 #MANUFACTURER = "hgst"
-MANUFACTURER = "seagate"
+#MANUFACTURER = "seagate"
 #MANUFACTURER = "hitachi"
 #MANUFACTURER = "toshiba"
 #MANUFACTURER = "wdc"
+MANUFACTURER = sys.argv[1]
 DATA_DIR = "/home/woden/predict"
-MANUFACTURER_TYPES = "seagate"
-#MANUFACTURER_TYPES = "hgst"
+
+MANUFACTURER_TYPES = "hgst"
+if MANUFACTURER == "seagate":
+    MANUFACTURER_TYPES = "seagate"
+
 
 pattern = os.path.join(DATA_DIR, f"data_Q*_????_{MANUFACTURER}_clean", "*.csv")
 
 # Read all matching CSVs
 df = dd.read_csv(
     pattern,
-    dtype=custom_dtypes[MANUFACTURER],
+    dtype=custom_dtypes[MANUFACTURER_TYPES],
 )
 
 df = utils.optimal_repartition_df(df)
@@ -397,6 +402,8 @@ print(X_train_fail.shape)
 print(X_test_fail.shape)
 print(X_train_work.shape)
 print(X_test_work.shape)
+
+print(X_train.columns)
 
 # robust scaling to not be outlier sensitive
 scaler = RobustScaler()
