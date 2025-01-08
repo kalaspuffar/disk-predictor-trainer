@@ -75,15 +75,8 @@ custom_dtypes = {
     "hgst": {
         "date": "object",
         "serial_number": "object",
-        "model": "object",
         "capacity_bytes": "float32",
         "failure": "float32",
-        "datacenter": "object",
-        "cluster_id": "float32",
-        "vault_id": "float32",
-        "pod_id": "float32",
-        "pod_slot_num": "float32",
-        "is_legacy_format": "object", 
         "smart_1_normalized": "float32",
         "smart_1_raw": "float32",
         "smart_2_normalized": "float32",
@@ -150,8 +143,6 @@ custom_dtypes_use_keys = {
     ],
 }
 
-
-
 # read all the cleaned seagate data into one dataframe
 #MANUFACTURER = "hgst"
 #MANUFACTURER = "seagate"
@@ -172,7 +163,7 @@ pattern = os.path.join(DATA_DIR, f"data_Q*_????_{MANUFACTURER}_clean", "*.csv")
 df = dd.read_csv(
     pattern,
     dtype=custom_dtypes[MANUFACTURER_TYPES],
-    usecols=custom_dtypes_use_keys[MANUFACTURER_TYPES]
+    usecols=custom_dtypes[MANUFACTURER_TYPES].keys()
 )
 
 df = utils.optimal_repartition_df(df)
