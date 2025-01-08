@@ -154,31 +154,100 @@ custom_dtypes = {
         "smart_199_normalized": "float32",
         "smart_199_raw": "float32",
     },
+    "toshiba": {
+        "date": "object",
+        "serial_number": "object",
+        "capacity_bytes": "float32",
+        "failure": "float32",
+        "smart_1_normalized": "float32",
+        "smart_1_raw": "float32",
+        "smart_2_normalized": "float32",
+        "smart_2_raw": "float32",
+        "smart_3_normalized": "float32",
+        "smart_3_raw": "float32",
+        "smart_4_normalized": "float32",
+        "smart_4_raw": "float32",
+        "smart_5_normalized": "float32",
+        "smart_5_raw": "float32",
+        "smart_7_normalized": "float32",
+        "smart_7_raw": "float32",
+        "smart_8_normalized": "float32",
+        "smart_8_raw": "float32",
+        "smart_9_normalized": "float32",
+        "smart_9_raw": "float32",
+        "smart_10_normalized": "float32",
+        "smart_10_raw": "float32",
+        "smart_12_normalized": "float32",
+        "smart_12_raw": "float32",
+        "smart_192_normalized": "float32",
+        "smart_192_raw": "float32",
+        "smart_193_normalized": "float32",
+        "smart_193_raw": "float32",
+        "smart_194_normalized": "float32",
+        "smart_194_raw": "float32",
+        "smart_196_normalized": "float32",
+        "smart_196_raw": "float32",
+        "smart_197_normalized": "float32",
+        "smart_197_raw": "float32",
+        "smart_198_normalized": "float32",
+        "smart_198_raw": "float32",
+        "smart_199_normalized": "float32",
+        "smart_199_raw": "float32",
+    },
+    "wdc": {
+        "date": "object",
+        "serial_number": "object",
+        "capacity_bytes": "float32",
+        "failure": "float32",
+        "smart_1_normalized": "float32",
+        "smart_1_raw": "float32",
+        "smart_2_normalized": "float32",
+        "smart_2_raw": "float32",
+        "smart_3_normalized": "float32",
+        "smart_3_raw": "float32",
+        "smart_4_normalized": "float32",
+        "smart_4_raw": "float32",
+        "smart_5_normalized": "float32",
+        "smart_5_raw": "float32",
+        "smart_7_normalized": "float32",
+        "smart_7_raw": "float32",
+        "smart_8_normalized": "float32",
+        "smart_8_raw": "float32",
+        "smart_9_normalized": "float32",
+        "smart_9_raw": "float32",
+        "smart_10_normalized": "float32",
+        "smart_10_raw": "float32",
+        "smart_12_normalized": "float32",
+        "smart_12_raw": "float32",
+        "smart_22_normalized": "float32",
+        "smart_22_raw": "float32",
+        "smart_192_normalized": "float32",
+        "smart_192_raw": "float32",
+        "smart_193_normalized": "float32",
+        "smart_193_raw": "float32",
+        "smart_194_normalized": "float32",
+        "smart_194_raw": "float32",
+        "smart_196_normalized": "float32",
+        "smart_196_raw": "float32",
+        "smart_197_normalized": "float32",
+        "smart_197_raw": "float32",
+        "smart_198_normalized": "float32",
+        "smart_198_raw": "float32",
+        "smart_199_normalized": "float32",
+        "smart_199_raw": "float32",
+    }    
 }
 
-# read all the cleaned seagate data into one dataframe
-#MANUFACTURER = "hgst"
-#MANUFACTURER = "seagate"
-#MANUFACTURER = "hitachi"
-#MANUFACTURER = "toshiba"
-#MANUFACTURER = "wdc"
 MANUFACTURER = sys.argv[1]
 DATA_DIR = "/home/woden/predict"
-
-MANUFACTURER_TYPES = "hgst"
-if MANUFACTURER == "seagate":
-    MANUFACTURER_TYPES = "seagate"
-if MANUFACTURER == "hitachi":
-    MANUFACTURER_TYPES = "hitachi"
-
 
 pattern = os.path.join(DATA_DIR, f"data_Q*_????_{MANUFACTURER}_clean", "*.csv")
 
 # Read all matching CSVs
 df = dd.read_csv(
     pattern,
-    dtype=custom_dtypes[MANUFACTURER_TYPES],
-    usecols=custom_dtypes[MANUFACTURER_TYPES].keys()
+    dtype=custom_dtypes[MANUFACTURER],
+    usecols=custom_dtypes[MANUFACTURER].keys()
 )
 
 df = utils.optimal_repartition_df(df)
@@ -213,6 +282,7 @@ del working_df
 gc.collect()
 
 # convert from str to datetime
+df = df[df["date"] != "0.0"]
 df["date"] = df["date"].astype("datetime64[ns]")
 
 # =============================== FOR DASK =============================== #
@@ -228,7 +298,6 @@ df = (
     .apply(utils.append_rul_days_column, meta=rul_meta)
     .reset_index(drop=True)
 )
-
 df.head()
 
 # remove working drive data that is recorded after [quarter end minus 6 weeks]
