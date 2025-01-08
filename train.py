@@ -123,6 +123,35 @@ custom_dtypes = {
     },
 }
 
+custom_dtypes_use_keys = {
+    "seagate": [
+        "date", "serial_number", "capacity_bytes", "failure",
+        "smart_1_normalized", "smart_1_raw", "smart_5_normalized", "smart_5_raw",
+        "smart_7_normalized", "smart_7_raw", "smart_9_normalized", "smart_9_raw",
+        "smart_10_normalized", "smart_10_raw", "smart_184_normalized", "smart_184_raw",
+        "smart_187_normalized", "smart_187_raw", "smart_188_normalized", "smart_188_raw", 
+        "smart_189_normalized", "smart_189_raw", "smart_190_normalized", "smart_190_raw",
+        "smart_193_normalized", "smart_193_raw", "smart_194_normalized", "smart_194_raw",
+        "smart_197_normalized", "smart_197_raw", "smart_198_normalized", "smart_198_raw",
+        "smart_240_normalized", "smart_240_raw", "smart_241_normalized", "smart_241_raw",
+        "smart_242_normalized", "smart_242_raw",
+    ]
+    "hgst": [
+        "date", "serial_number", "capacity_bytes", "failure",
+        "smart_1_normalized", "smart_1_raw", "smart_2_normalized", "smart_2_raw",
+        "smart_3_normalized", "smart_3_raw", "smart_4_normalized", "smart_4_raw",
+        "smart_5_normalized", "smart_5_raw", "smart_7_normalized", "smart_7_raw",
+        "smart_8_normalized", "smart_8_raw", "smart_9_normalized", "smart_9_raw",
+        "smart_10_normalized", "smart_10_raw", "smart_12_normalized", "smart_12_raw",
+        "smart_22_normalized", "smart_22_raw", "smart_192_normalized", "smart_192_raw",
+        "smart_193_normalized", "smart_193_raw", "smart_194_normalized", "smart_194_raw",
+        "smart_196_normalized", "smart_196_raw", "smart_197_normalized", "smart_197_raw",
+        "smart_198_normalized", "smart_198_raw", "smart_199_normalized", "smart_199_raw",
+    ],
+}
+
+
+
 # read all the cleaned seagate data into one dataframe
 #MANUFACTURER = "hgst"
 #MANUFACTURER = "seagate"
@@ -143,7 +172,7 @@ pattern = os.path.join(DATA_DIR, f"data_Q*_????_{MANUFACTURER}_clean", "*.csv")
 df = dd.read_csv(
     pattern,
     dtype=custom_dtypes[MANUFACTURER_TYPES],
-    usecols=custom_dtypes[MANUFACTURER_TYPES].keys()
+    usecols=custom_dtypes_use_keys[MANUFACTURER_TYPES]
 )
 
 df = utils.optimal_repartition_df(df)
@@ -171,11 +200,6 @@ working_df.head()
 
 # concatenate rows
 df = dd.concat([failed_df, working_df], interleave_partitions=True)
-
-# drop columns that wont be useful for prediction
-if MANUFACTURER == "hgst":
-    df = df.drop("model", axis=1)
-
 df.head()
 
 del failed_df
