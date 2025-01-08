@@ -514,8 +514,13 @@ del Y_test_work
 del Y_test_fail
 gc.collect()
 
-fscaler_name = "models/{}_scaler.pkl".format(MANUFACTURER)
+col_list = X_train.columns.tolist()
+fconfig_name = "models/{}.config".format(MANUFACTURER)
 
+with open(fconfig_name, "w") as f:
+    json.dump(col_list, f, indent=2)
+
+fscaler_name = "models/{}_scaler.pkl".format(MANUFACTURER)
 # Save .pkl files
 with open(fscaler_name, "wb") as f_scaler:
     pickle.dump(scaler, f_scaler)
