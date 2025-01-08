@@ -6,9 +6,6 @@ import sys
 import numpy as np
 import pandas as pd
 import pickle
-import joblib
-
-from matplotlib import pyplot as plt
 
 import dask.dataframe as dd
 from dask.diagnostics import ProgressBar
@@ -174,6 +171,10 @@ if MANUFACTURER == "hgst":
 
 df.head()
 
+del failed_df
+del working_df
+gc.collect()
+
 # convert from str to datetime
 df["date"] = df["date"].astype("datetime64[ns]")
 
@@ -318,13 +319,16 @@ df = df.compute()
 print("After convert to pandas")
 
 # MUST make sure indices are unique before processing
-#df = df.reset_index(drop=True)
+df = df.reset_index(drop=True)
 feats_df = pandas_rolling_feats(
     df,
     window=6,
     drop_cols=["date", "capacity_bytes", "failure", "rul_days", "status"],
     group_cols=["serial_number"],
 )
+
+del df
+gc.collect()
 
 
 # infinities get added to df - remove these
@@ -337,6 +341,9 @@ print("Before series preparation")
 # ['serial_number', 'status']
 X_arr = feats_df.drop(["serial_number", "status"], axis=1)
 Y_arr = feats_df[["serial_number", "status"]]
+
+del feats_df
+gc.collect()
 
 # failed serials left after reduction
 failed_sers_red = pd.Series(Y_arr["serial_number"].unique())
@@ -460,8 +467,6 @@ cm
 cm / cm.sum(axis=1, keepdims=True)
 
 # training is going to require a lot of memory. free as much as possible
-del df
-del feats_df
 del X_train_work
 del X_train_fail
 del Y_train_work
@@ -480,7 +485,6 @@ with open(fscaler_name, "wb") as f_scaler:
 
 print("Saved scaler")
 
-# with joblib.parallel_backend('dask'):
 dt_clf = DecisionTreeClassifier(random_state=24)
 dt_clf.fit(X_train, Y_train)
 
