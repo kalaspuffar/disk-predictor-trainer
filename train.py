@@ -15,8 +15,11 @@ from dask.diagnostics import ProgressBar
 
 from sklearn.preprocessing import RobustScaler
 from sklearn.model_selection import train_test_split
-
 from sklearn.svm import SVC
+#from dask_ml.wrappers import Incremental
+from sklearn.neural_network import MLPClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
 
 from sklearn.metrics import (
     confusion_matrix,
@@ -281,7 +284,11 @@ df = df.groupby("serial_number").apply(add_deltas).reset_index(drop=True)
 df = df.fillna(pd.Timedelta(seconds=0))
 df.isna().any().compute()
 
+print("Before shape compute")
+
 dd.compute(df.shape)
+
+print("After shape compute")
 
 def pandas_rolling_feats(
     df,
@@ -344,6 +351,8 @@ def pandas_rolling_feats(
 # must convert dask to pandas
 df = df.compute()
 
+print("After convert to pandas")
+
 # MUST make sure indices are unique before processing
 df = df.reset_index(drop=True)
 feats_df = pandas_rolling_feats(
@@ -358,6 +367,8 @@ feats_df = pandas_rolling_feats(
 feats_df = feats_df.replace([np.inf, -np.inf], np.nan).dropna()
 feats_df.head()
 
+print("Before series preparation")
+
 # ['date', 'serial_number', 'model', 'failure', 'rul_days', 'status']
 # ['serial_number', 'status']
 X_arr = feats_df.drop(["serial_number", "status"], axis=1)
@@ -371,6 +382,8 @@ failed_sers_red = failed_sers_red[failed_sers_red.isin(failed_serials)]
 working_sers_red = pd.Series(Y_arr["serial_number"].unique())
 working_sers_red = working_sers_red[~working_sers_red.isin(failed_serials)]
 
+print("Before split")
+
 # split working and failed
 working_train, working_test = train_test_split(
     working_sers_red, test_size=0.2, random_state=42
@@ -378,6 +391,8 @@ working_train, working_test = train_test_split(
 failed_train, failed_test = train_test_split(
     failed_sers_red, test_size=0.2, random_state=42
 )
+
+print("After split")
 
 # use serial numbers to generate train/test set
 # CHECKED OK - train/test ratio 0.8, fail/work and overall both
@@ -388,6 +403,8 @@ X_train = pd.concat([X_train_work, X_train_fail])
 Y_train_work = Y_arr[Y_arr["serial_number"].isin(working_train)]["status"]
 Y_train_fail = Y_arr[Y_arr["serial_number"].isin(failed_train)]["status"]
 Y_train = pd.concat([Y_train_work, Y_train_fail])
+
+print("After half of the concatination")
 
 X_test_work = X_arr[Y_arr["serial_number"].isin(working_test)]
 X_test_fail = X_arr[Y_arr["serial_number"].isin(failed_test)]
@@ -497,6 +514,49 @@ del Y_test_work
 del Y_test_fail
 gc.collect()
 
+fscaler_name = "models/{}_scaler.pkl".format(MANUFACTURER)
+
+# Save .pkl files
+with open(fscaler_name, "wb") as f_scaler:
+    pickle.dump(scaler, f_scaler)
+
+print("Saved scaler")
+
+# with joblib.parallel_backend('dask'):
+dt_clf = DecisionTreeClassifier(random_state=24)
+dt_clf.fit(X_train, Y_train)
+
+# get preds
+dt_preds = dt_clf.predict(scaler.transform(X_test))
+dt_confmat = confusion_matrix(Y_test, dt_preds)
+
+print(dt_confmat)
+print(classification_report(Y_test, dt_preds, target_names=['good', 'warning', 'bad']))
+
+dt_predictor_name = "dt_models/{}_predictor.pkl".format(MANUFACTURER)
+
+with open(dt_predictor_name, "wb") as f_model:
+    pickle.dump(dt_clf, f_model)
+
+print("Saved decision tree classifier")
+
+rf_clf = RandomForestClassifier(n_estimators=12, class_weight='balanced', n_jobs=-1, random_state=24)
+rf_clf.fit(X_train, Y_train)
+
+# get preds
+rf_preds = rf_clf.predict(scaler.transform(X_test))
+rf_confmat = confusion_matrix(Y_test, rf_preds)
+
+print(rf_confmat)
+print(classification_report(Y_test, rf_preds, target_names=['good', 'warning', 'bad']))
+
+rf_predictor_name = "rf_models/{}_predictor.pkl".format(MANUFACTURER)
+
+with open(rf_predictor_name, "wb") as f_model:
+    pickle.dump(rf_clf, f_model)
+
+print("Saved random forest classifier")
+
 svc = SVC(class_weight="balanced")
 svc.fit(X_train, Y_train)
 
@@ -507,20 +567,33 @@ svc_confmat = confusion_matrix(Y_test, svc_preds)
 print(svc_confmat)
 print(classification_report(Y_test, svc_preds, target_names=["good", "warning", "bad"]))
 
+svc_predictor_name = "svc_models/{}_predictor.pkl".format(MANUFACTURER)
 
-fscaler_name = "models/{}_scaler_{}.pkl".format(
-    MANUFACTURER, datetime.datetime.now().strftime("%b_%d_%Y_%H_%M_%S")
-)
-
-# Save .pkl files
-with open(fscaler_name, "wb") as f_scaler:
-    pickle.dump(scaler, f_scaler)
-
-fpredictor_name = "models/{}_predictor_{}.pkl".format(
-    MANUFACTURER, datetime.datetime.now().strftime("%b_%d_%Y_%H_%M_%S")
-)
-
-with open(fpredictor_name, "wb") as f_model:
+with open(svc_predictor_name, "wb") as f_model:
     pickle.dump(svc, f_model)
 
-print("Saved scaler and model.")
+print("Saved SVM model.")
+
+mlp = MLPClassifier(hidden_layer_sizes=(128, 512, 512, 128),
+                    activation='sigmoid',
+                    batch_size=256,
+                    warm_start=True,
+                    random_state=24)
+# clf = Incremental(mlp)
+mlp.fit(X_train, Y_train)
+
+# with parallel_backend('dask'):
+# get preds
+mlp_preds = mlp.predict(scaler.transform(X_test))
+mlp_confmat = confusion_matrix(Y_test, mlp_preds)
+
+print(np.around(mlp_confmat / mlp_confmat.sum(axis=1, keepdims=True), decimals=2))
+print(classification_report(Y_test, mlp_preds, target_names=['good', 'warning', 'bad']))
+
+mlp_predictor_name = "mlp_models/{}_predictor.pkl".format(MANUFACTURER)
+
+with open(mlp_predictor_name, "wb") as f_model:
+    pickle.dump(mlp, f_model)
+
+
+print("Saved MLP classifier")

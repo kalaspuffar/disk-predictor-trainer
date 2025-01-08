@@ -1,4 +1,4 @@
 data_*
 *.zip
 __pycache__
-/models/
+/*_models/
