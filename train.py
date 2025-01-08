@@ -155,37 +155,7 @@ failed_serials = df[df["failure"] == 1]["serial_number"].compute()
 failed_df = df[df["serial_number"].isin(failed_serials)]
 failed_df.head()
 
-# number of days of data available for failed drives
-days = (
-    failed_df[["date", "serial_number", "failure"]]
-    .groupby("serial_number")
-    .size()
-    .compute()
-)
-plt.hist(days, bins=7)  # 92 days / 2 weeks = 7 bins
-
-# extract mean,std,capacity for working drives
-# but first, drop the columns for which it doesnt make sense the "aggregate" values
-drop_cols = ["date", "capacity_bytes", "failure"]
-
-# FIXME: this is a temp fix. ideally, we should remove model column from the clean data for hgst
-if MANUFACTURER.lower() == "hgst":
-    drop_cols.append("model")
-
-#working_feats_df = utils.featurize_ts(
-#    df[~df["serial_number"].isin(failed_serials)], drop_cols=drop_cols, num_days=True
-#)
-#working_feats_df.head()
-
-# apply clustering to get the serial numbers that best represent the working drives
 num_working_serials = 5000
-# sc = SpectralClustering(n_clusters=num_working_serials,
-#                         affinity=cosine_similarity,
-# #                         n_neighbors=50,
-#                         n_jobs=-1)
-# sc = SpectralClustering(n_clusters=num_working_serials, n_jobs=-1)
-# minikm = MiniBatchKMeans(n_clusters=num_working_serials, max_iter=1e5, batch_size=500)
-# working_repr_sers = utils.get_downsampled_working_sers(working_feats_df.compute(), num_working_serials, model=minikm)
 working_sers = df[~df["serial_number"].isin(failed_serials)]["serial_number"].unique()
 working_repr_sers = working_sers.sample(
     frac=(num_working_serials / len(working_sers))
@@ -196,12 +166,6 @@ working_df = df[df["serial_number"].isin(working_repr_sers)]
 working_df.head()
 
 # concatenate rows
-#df = failed_df.append(working_df)
-#df_extended = pd.DataFrame(working_df, columns=failed_df.columns)
-#df = pd.concat([failed_df, [working_df]])
-#df = failed_df.merge(working_df, left_index=True, right_index=True)
-#df_extended = pd.Series(working_df)
-#df = pd.concat([failed_df, df_extended])
 df = dd.concat([failed_df, working_df], interleave_partitions=True)
 
 # drop columns that wont be useful for prediction
@@ -271,8 +235,8 @@ def add_deltas(group):
 
 # # =============================== FOR DASK =============================== #
 # # create meta of the resulting failed_df otherwise dask complains
-# rul_meta = df._meta
-# rul_meta = rul_meta.assign(rul_days=rul_meta['date'].max()-rul_meta['date'])
+#rul_meta = df._meta
+#rul_meta = rul_meta.assign(rul_days=rul_meta['date'].max()-rul_meta['date'])
 # # ======================================================================== #
 
 # get remaining useful life as diff(today, maxday)
@@ -354,7 +318,7 @@ df = df.compute()
 print("After convert to pandas")
 
 # MUST make sure indices are unique before processing
-df = df.reset_index(drop=True)
+#df = df.reset_index(drop=True)
 feats_df = pandas_rolling_feats(
     df,
     window=6,
@@ -425,12 +389,6 @@ print(X_train.columns)
 # robust scaling to not be outlier sensitive
 scaler = RobustScaler()
 X_train = scaler.fit_transform(X_train)
-
-# FIXME: this would not work for dask objects (delayed objects) - MUST use cloudpickle for that
-fname = "models/{}_preprocessor_{}.joblib".format(
-    MANUFACTURER, datetime.datetime.now().strftime("%b_%d_%Y_%H_%M_%S")
-)
-joblib.dump(scaler, fname)
 
 # use mean values as threshold
 class0_mean = X_train[(Y_train == 0).values, :].mean(axis=0, keepdims=True)
