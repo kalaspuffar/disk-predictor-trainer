@@ -8,6 +8,7 @@ import pandas as pd
 import pickle
 
 import dask.dataframe as dd
+from dask.dataframe import to_datetime
 from dask.diagnostics import ProgressBar
 
 from sklearn.preprocessing import RobustScaler
@@ -248,7 +249,7 @@ df = utils.optimal_repartition_df(df)
 
 # convert from str to datetime
 df = df[df["date"] != "0.0"]
-df["date"] = pd.to_datetime(df["date"], errors="coerce")
+df["date"] = to_datetime(df["date"], errors="coerce")
 df = df.dropna(subset=["date"])
 df["date"] = df["date"].astype("datetime64[ns]")
 
