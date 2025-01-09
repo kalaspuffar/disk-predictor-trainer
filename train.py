@@ -33,7 +33,7 @@ pbar.register()
 # null values cannot be interpreted as ints
 custom_dtypes = {
     "seagate": {
-        "date": "object",
+        "date": "str",
         "serial_number": "object",
         "capacity_bytes": "float32",
         "failure": "float32",
@@ -73,7 +73,7 @@ custom_dtypes = {
         "smart_242_raw": "float32",
     },
     "hgst": {
-        "date": "object",
+        "date": "str",
         "serial_number": "object",
         "capacity_bytes": "float32",
         "failure": "float32",
@@ -115,7 +115,7 @@ custom_dtypes = {
         "smart_199_raw": "float32",
     },
     "hitachi": {
-        "date": "object",
+        "date": "str",
         "serial_number": "object",
         "capacity_bytes": "float32",
         "failure": "float32",
@@ -155,7 +155,7 @@ custom_dtypes = {
         "smart_199_raw": "float32",
     },
     "toshiba": {
-        "date": "object",
+        "date": "str",
         "serial_number": "object",
         "capacity_bytes": "float32",
         "failure": "float32",
@@ -195,7 +195,7 @@ custom_dtypes = {
         "smart_199_raw": "float32",
     },
     "wdc": {
-        "date": "object",
+        "date": "str",
         "serial_number": "object",
         "capacity_bytes": "float32",
         "failure": "float32",
@@ -241,10 +241,17 @@ pattern = os.path.join(DATA_DIR, f"data_Q*_????_{MANUFACTURER}_clean", "*.csv")
 df = dd.read_csv(
     pattern,
     dtype=custom_dtypes[MANUFACTURER],
-    usecols=custom_dtypes[MANUFACTURER].keys()
+    usecols=custom_dtypes[MANUFACTURER].keys(),
+    on_bad_lines="skip"
 )
 
 df = utils.optimal_repartition_df(df)
+
+# convert from str to datetime
+df = df[df["date"] != "0.0"]
+#df["date"] = to_datetime(df["date"], errors="coerce")
+df = df.dropna(subset=["date"])
+df["date"] = df["date"].astype("datetime64[ns]")
 
 # define thresholds as timedelta
 BAD_THRESHOLD_NDAYS = np.timedelta64(14, "D")
@@ -274,10 +281,6 @@ df.head()
 del failed_df
 del working_df
 gc.collect()
-
-# convert from str to datetime
-df = df[df["date"] != "0.0"]
-df["date"] = df["date"].astype("datetime64[ns]")
 
 # =============================== FOR DASK =============================== #
 # create meta of the resulting failed_df otherwise dask complains
