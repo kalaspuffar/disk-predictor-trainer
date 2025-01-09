@@ -597,6 +597,8 @@ print("Saved scaler")
 dt_clf = DecisionTreeClassifier(random_state=24)
 dt_clf.fit(X_train, Y_train)
 
+print("Decision tree Trained")
+
 # get preds
 dt_preds = dt_clf.predict(scaler.transform(X_test))
 dt_confmat = confusion_matrix(Y_test, dt_preds)
@@ -614,6 +616,8 @@ print("Saved decision tree classifier")
 rf_clf = RandomForestClassifier(n_estimators=12, class_weight='balanced', n_jobs=-1, random_state=24)
 rf_clf.fit(X_train, Y_train)
 
+print("Random forest Trained")
+
 # get preds
 rf_preds = rf_clf.predict(scaler.transform(X_test))
 rf_confmat = confusion_matrix(Y_test, rf_preds)
@@ -630,6 +634,8 @@ print("Saved random forest classifier")
 
 svc = SVC(class_weight="balanced")
 svc.fit(X_train, Y_train)
+
+print("SVC Trained")
 
 # get preds
 svc_preds = svc.predict(scaler.transform(X_test))
@@ -652,6 +658,8 @@ mlp = MLPClassifier(hidden_layer_sizes=(128, 512, 512, 128),
                     random_state=24)
 # clf = Incremental(mlp)
 mlp.fit(X_train, Y_train)
+
+print("MLP Trained")
 
 # with parallel_backend('dask'):
 # get preds
