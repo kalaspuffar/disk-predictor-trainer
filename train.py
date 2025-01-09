@@ -241,15 +241,14 @@ pattern = os.path.join(DATA_DIR, f"data_Q*_????_{MANUFACTURER}_clean", "*.csv")
 df = dd.read_csv(
     pattern,
     dtype=custom_dtypes[MANUFACTURER],
-    usecols=custom_dtypes[MANUFACTURER].keys(),
-    on_bad_lines="skip"
+    usecols=custom_dtypes[MANUFACTURER].keys()
 )
 
 df = utils.optimal_repartition_df(df)
 
 # convert from str to datetime
 df = df[df["date"] != "0.0"]
-#df["date"] = to_datetime(df["date"], errors="coerce")
+df["date"] = pd.to_datetime(df["date"], errors="coerce")
 df = df.dropna(subset=["date"])
 df["date"] = df["date"].astype("datetime64[ns]")
 
