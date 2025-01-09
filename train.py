@@ -496,6 +496,12 @@ print(X_test_work.shape)
 
 print(X_train.columns)
 
+col_list = X_train.columns.tolist()
+fconfig_name = "models/{}.config".format(MANUFACTURER)
+
+with open(fconfig_name, "w") as f:
+    json.dump(col_list, f, indent=2)
+
 # robust scaling to not be outlier sensitive
 scaler = RobustScaler()
 X_train = scaler.fit_transform(X_train)
@@ -579,12 +585,6 @@ del X_test_fail
 del Y_test_work
 del Y_test_fail
 gc.collect()
-
-col_list = X_train.columns.tolist()
-fconfig_name = "models/{}.config".format(MANUFACTURER)
-
-with open(fconfig_name, "w") as f:
-    json.dump(col_list, f, indent=2)
 
 fscaler_name = "models/{}_scaler.pkl".format(MANUFACTURER)
 # Save .pkl files
