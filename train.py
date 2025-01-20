@@ -504,7 +504,8 @@ with open(fconfig_name, "w") as f:
     json.dump(col_list, f, indent=2)
 
 # robust scaling to not be outlier sensitive
-scaler = RobustScaler()
+#scaler = RobustScaler()
+scaler = StandardScaler()
 X_train = scaler.fit_transform(X_train)
 
 # use mean values as threshold
