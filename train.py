@@ -12,7 +12,7 @@ import dask.dataframe as dd
 from dask.dataframe import to_datetime
 from dask.diagnostics import ProgressBar
 
-from sklearn.preprocessing import RobustScaler
+from sklearn.preprocessing import RobustScaler, StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 #from dask_ml.wrappers import Incremental
