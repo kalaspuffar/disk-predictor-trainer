@@ -503,10 +503,14 @@ fconfig_name = "models/{}.config".format(MANUFACTURER)
 with open(fconfig_name, "w") as f:
     json.dump(col_list, f, indent=2)
 
+print("Create Scaler")
+
 # robust scaling to not be outlier sensitive
 #scaler = RobustScaler()
 scaler = StandardScaler()
 X_train = scaler.fit_transform(X_train)
+
+print("Scaler FIT")
 
 # use mean values as threshold
 class0_mean = X_train[(Y_train == 0).values, :].mean(axis=0, keepdims=True)
@@ -516,9 +520,14 @@ class_means = np.vstack((class0_mean, class1_mean, class2_mean))
 
 # predict based on a distance metric from mean values
 # NOTE: canberra, cosine generally work better than l2,l1,etc
+print("Scaler predict mean")
+
 preds = pairwise_distances_argmin(
     scaler.transform(X_test), class_means, metric="canberra"
 )
+
+print("Scaler END predict mean")
+
 
 # how does the baseline look
 cm = confusion_matrix(Y_test, preds)
@@ -533,9 +542,11 @@ class_medians = np.vstack((class0_median, class1_median, class2_median))
 
 # predict based on a distance metric from median values
 # NOTE: canberra, cosine generally work better than l2,l1,etc
+print("Scaler predict median")
 preds = pairwise_distances_argmin(
     scaler.transform(X_test), class_medians, metric="canberra"
 )
+print("Scaler END predict median")
 
 # how does the baseline look
 cm = confusion_matrix(Y_test, preds)
@@ -550,7 +561,9 @@ class_mins = np.vstack((class0_min, class1_min, class2_min))
 
 # predict based on a distance metric from min values
 # NOTE: canberra, cosine generally work better than l2,l1,etc
+print("Scaler predict min")
 preds = pairwise_distances_argmin(scaler.transform(X_test), class_mins, metric="cosine")
+print("Scaler END predict min")
 
 # how does the baseline look
 cm = confusion_matrix(Y_test, preds)
@@ -566,11 +579,13 @@ class_maxs = np.vstack((class0_max, class1_max, class2_max))
 # predict based on a distance metric from max values
 # NOTE: canberra, cosine generally work better than l2,l1,etc
 # preds = pairwise_distances_argmin(X_test, class_maxs, metric='cosine')
+print("Scaler predict max")
 class0_confs = (scaler.transform(X_test) > class0_max).sum(axis=1, keepdims=True)
 class1_confs = (scaler.transform(X_test) > class1_max).sum(axis=1, keepdims=True)
 class2_confs = (scaler.transform(X_test) > class2_max).sum(axis=1, keepdims=True)
 class_confs = np.hstack((class0_confs, class1_confs, class2_confs))
 preds = np.argmax(class_confs, axis=1)
+print("Scaler END predict max")
 
 # how does the baseline look
 cm = confusion_matrix(Y_test, preds)
