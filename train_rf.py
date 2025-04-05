@@ -6,7 +6,7 @@ import json
 
 import numpy as np
 import pandas as pd
-import pickle
+import cloudpickle as pickle
 
 import dask.dataframe as dd
 from dask.dataframe import to_datetime
