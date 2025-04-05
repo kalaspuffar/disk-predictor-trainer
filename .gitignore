@@ -2,3 +2,5 @@ data_*
 *.zip
 __pycache__
 /*_models/
+/models/
+train.log
