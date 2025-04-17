@@ -594,13 +594,25 @@ with open(fscaler_name, "wb") as f_scaler:
 
 print("Saved scaler")
 
-mlp = MLPClassifier(hidden_layer_sizes=(128, 512, 512, 512, 128),
-                    activation='logistic',
-                    batch_size=256,
-                    warm_start=True,
-                    verbose=True,
-                    max_iter=1000,
-                    random_state=24)
+mlp = MLPClassifier(
+    hidden_layer_sizes=(64, 32),  # Much smaller network
+    activation='relu',            # Faster convergence than logistic
+    batch_size=256,
+    learning_rate_init=0.001,     # Default is often too small
+    early_stopping=True,          # Stop when validation score doesn't improve
+    validation_fraction=0.1,      # Use 10% of training data for early stopping
+    max_iter=300,                 # Start with fewer iterations
+    random_state=24,
+    verbose=True
+)
+
+#mlp = MLPClassifier(hidden_layer_sizes=(128, 512, 512, 512, 128),
+#                    activation='logistic',
+#                    batch_size=256,
+#                    warm_start=True,
+#                    verbose=True,
+#                    max_iter=1000,
+#                    random_state=24)
 
 # clf = Incremental(mlp)
 mlp.fit(X_train, Y_train)
